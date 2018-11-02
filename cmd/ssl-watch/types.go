@@ -2,12 +2,13 @@ package main
 
 import (
 	"github.com/anchorfree/golang/pkg/jsonlog"
+	"strings"
 	"sync"
 	"time"
 )
 
 type Config struct {
-	ConfigFile        string        `default:"/etc/ssl-watch.conf" split_words:"true"`
+	ConfigDir         string        `default:"/etc/ssl-watch" split_words:"true"`
 	ScrapeInterval    time.Duration `default:"60s" split_words:"true"`
 	ConnectionTimeout time.Duration `default:"10s" split_words:"true"`
 	LookupTimeout     time.Duration `default:"5s" split_words:"true"`
@@ -43,7 +44,9 @@ func (m *Metrics) ListDomains() []string {
 	defer m.mutex.RUnlock()
 	m.mutex.RLock()
 	for domain, _ := range m.db {
-		domains = append(domains, domain)
+		if strings.Contains(domain, ".") {
+			domains = append(domains, domain)
+		}
 	}
 	return domains
 
