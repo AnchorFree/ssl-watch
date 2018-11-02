@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -63,8 +64,20 @@ func main() {
 
 		for domain, ips := range app.Domains {
 
-			eps := processDomain(app, domain, StrToIp(ips))
-			app.metrics.Set(domain, eps)
+			// if a domain does not contain a dot, we consider it to be a label for an IP set that
+			// can be referenced in other domains.
+			addrSet := ips
+			if strings.Contains(domain, ".") {
+				if len(ips) > 0 {
+					// if the first IP for a domain does not contain a dot, then it's a reference
+					// to a label, so we should "resolve" it.
+					if !strings.Contains(ips[0], ".") {
+						addrSet = app.Domains[ips[0]]
+					}
+				}
+				eps := processDomain(app, domain, StrToIp(addrSet))
+				app.metrics.Set(domain, eps)
+			}
 
 		}
 		time.Sleep(app.config.ScrapeInterval)

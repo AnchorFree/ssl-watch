@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/anchorfree/golang/pkg/jsonlog"
+	"strings"
 	"sync"
 	"time"
 )
@@ -43,7 +44,9 @@ func (m *Metrics) ListDomains() []string {
 	defer m.mutex.RUnlock()
 	m.mutex.RLock()
 	for domain, _ := range m.db {
-		domains = append(domains, domain)
+		if strings.Contains(domain, ".") {
+			domains = append(domains, domain)
+		}
 	}
 	return domains
 
