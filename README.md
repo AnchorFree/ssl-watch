@@ -6,16 +6,17 @@ Configuration
 
 SSLWATCH is configured with environment variables:
 
-* **SSLWATCH_CONFIG_FILE**  
-Path to the domains config file. The file should be in JSON format,
+* **SSLWATCH_CONFIG_DIR**  
+Path to the directory with domains config files. Default is **/etc/ssl-watch**.
+Each file in the directory should have a `.conf` suffix, and be in JSON format, 
 listing domain names to be inspected and their optional IP endpoints:
 ```
 { "example.com": [], "my.secret.domain.com" : ["127.0.0.1", "127.0.0.33", "127.0.0.4" ], "google.com" : [] }
 
 ```
-When there is no IP addresses provided for a domain, SSLWATCH will try to resolve
+Files in the directory that don't have `.conf` suffix are ignored.
+When there are no IP addresses provided for a domain, SSLWATCH will try to resolve
 it, and connect to all IP addresses the domain name resolves to.
-Default is **/etc/ssl-watch.conf**.
 
 * **SSLWATCH_SCRAPE_INTERVAL**  
 Interval between checking remote ssl endpoints. Default is **60s**

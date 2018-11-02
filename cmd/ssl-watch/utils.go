@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/anchorfree/golang/pkg/jsonlog"
 	"github.com/kelseyhightower/envconfig"
 	"io/ioutil"
@@ -31,11 +32,24 @@ func NewApp() *App {
 
 func reloadConfig(app *App) {
 
-	raw, err := ioutil.ReadFile(app.config.ConfigFile)
+	files, err := ioutil.ReadDir(app.config.ConfigDir)
 	if err != nil {
-		app.log.Fatal("can't read domain file config", err)
+		app.log.Fatal("can't read config files dir", err)
 	}
-	json.Unmarshal([]byte(raw), &app.Domains)
+
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".conf") {
+			raw, err := ioutil.ReadFile(app.config.ConfigDir + "/" + file.Name())
+			if err != nil {
+				app.log.Error("can't read config file "+file.Name(), err)
+			}
+			json.Unmarshal([]byte(raw), &app.Domains)
+		}
+	}
+
+	if len(app.Domains) == 0 {
+		app.log.Fatal("no configs provided", errors.New("no config files"))
+	}
 
 }
 

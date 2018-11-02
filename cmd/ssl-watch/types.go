@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	ConfigFile        string        `default:"/etc/ssl-watch.conf" split_words:"true"`
+	ConfigDir         string        `default:"/etc/ssl-watch" split_words:"true"`
 	ScrapeInterval    time.Duration `default:"60s" split_words:"true"`
 	ConnectionTimeout time.Duration `default:"10s" split_words:"true"`
 	LookupTimeout     time.Duration `default:"5s" split_words:"true"`

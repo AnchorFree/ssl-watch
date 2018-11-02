@@ -70,7 +70,7 @@ func main() {
 		time.Sleep(app.config.ScrapeInterval)
 	}()
 
-	app.log.Info("config file is set to be at " + app.config.ConfigFile)
+	app.log.Info("config dir is set to be at " + app.config.ConfigDir)
 	app.log.Info("scrape interval is " + app.config.ScrapeInterval.String())
 	app.log.Info("connection timeout is " + app.config.ConnectionTimeout.String())
 	app.log.Info("lookup timeout is " + app.config.LookupTimeout.String())
