@@ -9,10 +9,9 @@ import (
 	"time"
 )
 
-func updateMetrics(app *App, ticker *time.Ticker, firstRun, quit chan bool) {
+func (app *App) updateMetrics() {
 
-	update := func() {
-
+	for {
 		domains := app.domains.List()
 		app.log.Debug("current domains", domains)
 		for _, domain := range domains {
@@ -21,20 +20,7 @@ func updateMetrics(app *App, ticker *time.Ticker, firstRun, quit chan bool) {
 			eps := app.ProcessDomain(domain, StrToIp(addrSet))
 			app.metrics.Set(domain, eps)
 		}
-
-	}
-
-	for {
-		select {
-		case <-firstRun:
-			update()
-		case <-ticker.C:
-			update()
-		case <-quit:
-			ticker.Stop()
-			quit <- true
-			return
-		}
+		time.Sleep(app.config.ScrapeInterval)
 	}
 
 }
@@ -42,29 +28,18 @@ func updateMetrics(app *App, ticker *time.Ticker, firstRun, quit chan bool) {
 func main() {
 
 	app := NewApp()
-
-	firstRun := make(chan bool, 1)
-	restart := make(chan bool, 1)
-	quit := make(chan bool, 1)
 	sigHUP := make(chan os.Signal, 1)
 
+	go app.updateMetrics()
 	go func() {
 
 		for {
 			select {
-			case <-restart:
-				ticker := time.NewTicker(app.config.ScrapeInterval)
-				go updateMetrics(app, ticker, firstRun, quit)
-				firstRun <- true
-
 			case <-sigHUP:
 				app.log.Info("SIGHUP received, reloading configs")
-				quit <- true
-				<-quit
 				app.domains.Flush()
 				app.metrics.Flush()
 				app.ReloadConfig()
-				restart <- true
 			}
 		}
 
@@ -76,7 +51,6 @@ func main() {
 	app.log.Info("connection timeout is " + app.config.ConnectionTimeout.String())
 	app.log.Info("lookup timeout is " + app.config.LookupTimeout.String())
 	app.log.Info("starting http server on port " + app.config.Port)
-	restart <- true
 
 	rtr := mux.NewRouter()
 	rtr.HandleFunc("/metrics", app.ShowMetrics).Methods("GET")
