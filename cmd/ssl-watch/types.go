@@ -65,7 +65,7 @@ func (d *Domains) List() []string {
 	defer d.mutex.RUnlock()
 	domains := []string{}
 	d.mutex.RLock()
-	for domain, _ := range d.db {
+	for domain := range d.db {
 		if strings.Contains(domain, ".") {
 			domains = append(domains, domain)
 		}
@@ -97,7 +97,7 @@ func (m *Metrics) ListDomains() []string {
 	defer m.mutex.RUnlock()
 	domains := []string{}
 	m.mutex.RLock()
-	for domain, _ := range m.db {
+	for domain := range m.db {
 		if strings.Contains(domain, ".") {
 			domains = append(domains, domain)
 		}

@@ -6,26 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
-
-func (app *App) updateMetrics() {
-
-	ticker := time.NewTicker(app.config.ScrapeInterval)
-	defer ticker.Stop()
-
-	for ; true; <-ticker.C {
-		domains := app.domains.List()
-		app.log.Debug("current domains", domains)
-		for _, domain := range domains {
-			app.log.Debug("processing domain " + domain)
-			addrSet := app.domains.GetIPs(domain)
-			eps := app.ProcessDomain(domain, StrToIp(addrSet))
-			app.metrics.Set(domain, eps)
-		}
-	}
-
-}
 
 func main() {
 
