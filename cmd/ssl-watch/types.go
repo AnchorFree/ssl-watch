@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Config holds processed configuration from environment variables
 type Config struct {
 	ConfigDir         string        `default:"/etc/ssl-watch" split_words:"true"`
 	ScrapeInterval    time.Duration `default:"60s" split_words:"true"`
@@ -17,6 +18,9 @@ type Config struct {
 	Port              string        `default:"9105"`
 }
 
+// Endpoint is a struct for holding info about a single domain endpoint,
+// i.e. IP address. If we can't connect to this endpoint, we set alive
+// to false.
 type Endpoint struct {
 	CN            string
 	AltNamesCount int
@@ -25,18 +29,26 @@ type Endpoint struct {
 	alive         bool
 }
 
+// Endpoints is a map of domains to endpoints.
 type Endpoints map[string]Endpoint
 
+// Metrics is basically just a wrapper around Endpoints + mutex.
 type Metrics struct {
 	db    map[string]Endpoints
 	mutex sync.RWMutex
 }
 
+// Domains is a struct to hold parsed information from
+// config files.
 type Domains struct {
 	db    map[string][]string
 	mutex sync.RWMutex
 }
 
+// App is main struct of ssl-watch that,
+// after initialization, holds instances of
+// Config, Metrics and Domains structures +
+// a logger interface.
 type App struct {
 	domains Domains
 	config  Config
@@ -44,6 +56,7 @@ type App struct {
 	metrics Metrics
 }
 
+// Flush flushes all the values from Domains map.
 func (d *Domains) Flush() {
 
 	d.mutex.Lock()
@@ -52,6 +65,8 @@ func (d *Domains) Flush() {
 
 }
 
+// Update takes a []byte of JSON and unmarshals
+// it into Domains map.
 func (d *Domains) Update(rawJSON []byte) {
 
 	d.mutex.Lock()
@@ -60,6 +75,8 @@ func (d *Domains) Update(rawJSON []byte) {
 
 }
 
+// List returns a string slice of all
+// domain names in the Domains map.
 func (d *Domains) List() []string {
 
 	defer d.mutex.RUnlock()
@@ -73,6 +90,8 @@ func (d *Domains) List() []string {
 	return domains
 }
 
+// GetIPs returns a string slice of IP addresses
+// for a given domain from the Domains map.
 func (d *Domains) GetIPs(domain string) []string {
 
 	defer d.mutex.RUnlock()
