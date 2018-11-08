@@ -84,8 +84,8 @@ func (d *Domains) GetIPs(domain string) []string {
 		if !strings.Contains(addrSet[0], ".") {
 			addrSet, ok = d.db[addrSet[0]]
 		}
-		for _, ip := range addrSet {
-			ips = append(ips, ip)
+		for i := range addrSet {
+			ips = append(ips, addrSet[i])
 		}
 	}
 	return ips
