@@ -1,58 +1,41 @@
 package main
 
 import (
-	"crypto/tls"
 	"github.com/gorilla/mux"
-	"net"
 	"net/http"
-	"strings"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
-func processDomain(app *App, domain string, ips []net.IP) Endpoints {
+func updateMetrics(app *App, ticker *time.Ticker, firstRun, quit chan bool) {
 
-	host, port, err := net.SplitHostPort(domain)
-	if err != nil {
-		host = domain
-		port = "443"
+	update := func() {
+
+		domains := app.domains.List()
+		app.log.Debug("current domains", domains)
+		for _, domain := range domains {
+			app.log.Debug("processing domain " + domain)
+			addrSet := app.domains.GetIPs(domain)
+			eps := app.ProcessDomain(domain, StrToIp(addrSet))
+			app.metrics.Set(domain, eps)
+		}
+
 	}
 
-	if len(ips) == 0 {
-		ips = resolveDomain(app, host, app.config.LookupTimeout)
-	}
-	endpoints := Endpoints{}
-
-	for _, ip := range ips {
-
-		dialer := net.Dialer{Timeout: app.config.ConnectionTimeout, Deadline: time.Now().Add(app.config.ConnectionTimeout + 5*time.Second)}
-
-		if IsIPv4(ip.String()) {
-
-			endpoint := Endpoint{}
-			connection, err := tls.DialWithDialer(&dialer, "tcp", ip.String()+":"+port, &tls.Config{ServerName: host, InsecureSkipVerify: true})
-			if err != nil {
-				app.log.Error(ip.String(), err)
-				endpoint.alive = false
-				endpoints[ip.String()] = endpoint
-				continue
-			}
-
-			cert := connection.ConnectionState().PeerCertificates[0]
-			endpoint.alive = true
-			endpoint.expiry = cert.NotAfter
-			endpoint.CN = cert.Subject.CommonName
-			endpoint.AltNamesCount = len(cert.DNSNames)
-			err = cert.VerifyHostname(host)
-			if err != nil {
-				endpoint.valid = false
-			} else {
-				endpoint.valid = true
-			}
-			connection.Close()
-			endpoints[ip.String()] = endpoint
+	for {
+		select {
+		case <-firstRun:
+			update()
+		case <-ticker.C:
+			update()
+		case <-quit:
+			ticker.Stop()
+			quit <- true
+			return
 		}
 	}
-	return endpoints
 
 }
 
@@ -60,34 +43,40 @@ func main() {
 
 	app := NewApp()
 
+	firstRun := make(chan bool, 1)
+	restart := make(chan bool, 1)
+	quit := make(chan bool, 1)
+	sigHUP := make(chan os.Signal, 1)
+
 	go func() {
 
-		for domain, ips := range app.Domains {
+		for {
+			select {
+			case <-restart:
+				ticker := time.NewTicker(app.config.ScrapeInterval)
+				go updateMetrics(app, ticker, firstRun, quit)
+				firstRun <- true
 
-			// if a domain does not contain a dot, we consider it to be a label for an IP set that
-			// can be referenced in other domains.
-			addrSet := ips
-			if strings.Contains(domain, ".") {
-				if len(ips) > 0 {
-					// if the first IP for a domain does not contain a dot, then it's a reference
-					// to a label, so we should "resolve" it.
-					if !strings.Contains(ips[0], ".") {
-						addrSet = app.Domains[ips[0]]
-					}
-				}
-				eps := processDomain(app, domain, StrToIp(addrSet))
-				app.metrics.Set(domain, eps)
+			case <-sigHUP:
+				app.log.Info("SIGHUP received, reloading configs")
+				quit <- true
+				<-quit
+				app.domains.Flush()
+				app.metrics.Flush()
+				app.ReloadConfig()
+				restart <- true
 			}
-
 		}
-		time.Sleep(app.config.ScrapeInterval)
+
 	}()
+	signal.Notify(sigHUP, syscall.SIGHUP)
 
 	app.log.Info("config dir is set to be at " + app.config.ConfigDir)
 	app.log.Info("scrape interval is " + app.config.ScrapeInterval.String())
 	app.log.Info("connection timeout is " + app.config.ConnectionTimeout.String())
 	app.log.Info("lookup timeout is " + app.config.LookupTimeout.String())
 	app.log.Info("starting http server on port " + app.config.Port)
+	restart <- true
 
 	rtr := mux.NewRouter()
 	rtr.HandleFunc("/metrics", app.ShowMetrics).Methods("GET")

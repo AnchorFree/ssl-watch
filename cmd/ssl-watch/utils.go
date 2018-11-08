@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"crypto/tls"
 	"errors"
 	"github.com/anchorfree/golang/pkg/jsonlog"
 	"github.com/kelseyhightower/envconfig"
@@ -24,13 +24,14 @@ func NewApp() *App {
 	}
 
 	app.metrics = Metrics{mutex: sync.RWMutex{}, db: map[string]Endpoints{}}
+	app.domains = Domains{mutex: sync.RWMutex{}, db: map[string][]string{}}
 	log.Init("sslwatch", app.config.DebugMode, false, nil)
 	app.log = log
-	reloadConfig(app)
+	app.ReloadConfig()
 	return app
 }
 
-func reloadConfig(app *App) {
+func (app *App) ReloadConfig() {
 
 	files, err := ioutil.ReadDir(app.config.ConfigDir)
 	if err != nil {
@@ -43,19 +44,67 @@ func reloadConfig(app *App) {
 			if err != nil {
 				app.log.Error("can't read config file "+file.Name(), err)
 			}
-			json.Unmarshal([]byte(raw), &app.Domains)
+			app.domains.Update(raw)
 		}
 	}
 
-	if len(app.Domains) == 0 {
+	if len(app.domains.db) == 0 {
 		app.log.Fatal("no configs provided", errors.New("no config files"))
 	}
+	app.log.Debug("domains read from configs", app.domains.List())
 
 }
 
-func resolveDomain(app *App, domain string, timeout time.Duration) []net.IP {
+func (app *App) ProcessDomain(domain string, ips []net.IP) Endpoints {
 
-	timer := time.NewTimer(timeout)
+	host, port, err := net.SplitHostPort(domain)
+	if err != nil {
+		host = domain
+		port = "443"
+	}
+
+	if len(ips) == 0 {
+		ips = app.ResolveDomain(host)
+	}
+	endpoints := Endpoints{}
+
+	for _, ip := range ips {
+
+		dialer := net.Dialer{Timeout: app.config.ConnectionTimeout, Deadline: time.Now().Add(app.config.ConnectionTimeout + 5*time.Second)}
+
+		if IsIPv4(ip.String()) {
+
+			endpoint := Endpoint{}
+			connection, err := tls.DialWithDialer(&dialer, "tcp", ip.String()+":"+port, &tls.Config{ServerName: host, InsecureSkipVerify: true})
+			if err != nil {
+				app.log.Error(ip.String(), err)
+				endpoint.alive = false
+				endpoints[ip.String()] = endpoint
+				continue
+			}
+
+			cert := connection.ConnectionState().PeerCertificates[0]
+			endpoint.alive = true
+			endpoint.expiry = cert.NotAfter
+			endpoint.CN = cert.Subject.CommonName
+			endpoint.AltNamesCount = len(cert.DNSNames)
+			err = cert.VerifyHostname(host)
+			if err != nil {
+				endpoint.valid = false
+			} else {
+				endpoint.valid = true
+			}
+			connection.Close()
+			endpoints[ip.String()] = endpoint
+		}
+	}
+	return endpoints
+
+}
+
+func (app *App) ResolveDomain(domain string) []net.IP {
+
+	timer := time.NewTimer(app.config.LookupTimeout)
 	ch := make(chan []net.IP, 1)
 
 	go func() {

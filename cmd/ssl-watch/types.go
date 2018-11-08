@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/anchorfree/golang/pkg/jsonlog"
 	"strings"
 	"sync"
@@ -31,17 +32,70 @@ type Metrics struct {
 	mutex sync.RWMutex
 }
 
+type Domains struct {
+	db    map[string][]string
+	mutex sync.RWMutex
+}
+
 type App struct {
-	Domains map[string][]string `json:"domains"`
+	domains Domains
 	config  Config
 	log     jsonlog.Logger
 	metrics Metrics
 }
 
+func (d *Domains) Flush() {
+
+	d.mutex.Lock()
+	d.db = map[string][]string{}
+	d.mutex.Unlock()
+
+}
+
+func (d *Domains) Update(rawJSON []byte) {
+
+	d.mutex.Lock()
+	json.Unmarshal([]byte(rawJSON), &d.db)
+	d.mutex.Unlock()
+
+}
+
+func (d *Domains) List() []string {
+
+	defer d.mutex.RUnlock()
+	domains := []string{}
+	d.mutex.RLock()
+	for domain, _ := range d.db {
+		if strings.Contains(domain, ".") {
+			domains = append(domains, domain)
+		}
+	}
+	return domains
+}
+
+func (d *Domains) GetIPs(domain string) []string {
+
+	defer d.mutex.RUnlock()
+	ips := []string{}
+	d.mutex.RLock()
+
+	addrSet, ok := d.db[domain]
+	if ok && len(addrSet) > 0 {
+		if !strings.Contains(addrSet[0], ".") {
+			addrSet, ok = d.db[addrSet[0]]
+		}
+		for _, ip := range addrSet {
+			ips = append(ips, ip)
+		}
+	}
+	return ips
+
+}
+
 func (m *Metrics) ListDomains() []string {
 
-	domains := []string{}
 	defer m.mutex.RUnlock()
+	domains := []string{}
 	m.mutex.RLock()
 	for domain, _ := range m.db {
 		if strings.Contains(domain, ".") {
@@ -69,8 +123,16 @@ func (m *Metrics) Get(domain string) (Endpoints, bool) {
 
 func (m *Metrics) Set(domain string, endpoints Endpoints) {
 
-	defer m.mutex.Unlock()
 	m.mutex.Lock()
 	m.db[domain] = endpoints
+	m.mutex.Unlock()
+
+}
+
+func (m *Metrics) Flush() {
+
+	m.mutex.Lock()
+	m.db = map[string]Endpoints{}
+	m.mutex.Unlock()
 
 }
