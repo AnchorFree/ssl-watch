@@ -44,6 +44,12 @@ Metrics will be available at `http://localhost:9105/metrics`.
 * **SSLWATCH_DEBUG_MODE**  
 Turns on debug level logging. Default is **false**.
 
+Operation
+---------
+
+Upon receiving a SIGHUP signal SSLWATCH flushes current metrics
+and reloads config files.
+
 Exported metrics
 ----------------
 
