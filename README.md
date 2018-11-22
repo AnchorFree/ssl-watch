@@ -15,7 +15,7 @@ prometheus metrics with expiration date and some additional information.
 Note that `ssl-watch` does **not** try to validate the whole certificate chain, the only
 thing it does in terms of validation is checking at each IP endpoint whether 
 Common Name of the certificate or one of its' SANs has the domain name defined in the config.
-If it does, than SSLWATCH sets `valid="true"` label in prometheus metrics for this domain,
+If it does, then SSLWATCH sets `valid="true"` label in prometheus metrics for the domain,
 otherwise it will be set to `valid="false"`.
  
 Configuration
@@ -26,7 +26,8 @@ Configuration
 * **SSLWATCH_CONFIG_DIR**  
 Path to the directory with domains config files. Default is **/etc/ssl-watch**.
 Each file in the directory should have a `.conf` suffix, and be in JSON format, 
-listing domain names to be inspected and their optional IP endpoints:
+listing domain names to be inspected and their optional IP endpoints.
+Domain names and their IP endpoints should be grouped into "services" blocks:
 
 ```json
 { 
@@ -38,10 +39,13 @@ listing domain names to be inspected and their optional IP endpoints:
   
   "https" : 
     {
-      "domains" : { "web-domain-1.com": [], "web-domain-2.com:8443": [], "secret-site.io": [ "192.168.0.7", "192.168.0.8" ] } 
+      "domains" : { "jack.com": [], "daniels.org:8443": [], "absinth.io": [ "192.168.0.7", "192.168.0.8" ] } 
     }
 }
 ```
+
+The exported metrics will have `service` label set to `mailCerts` for `example.com` and `sample.net` domains,
+and to `https` for `jack.com`,`daniels.org` and `absinth.io` domains.
 
 Files in the directory that don't have `.conf` suffix are ignored.
 When there are no IP addresses provided for a domain, `ssl-watch` will try to resolve
@@ -54,14 +58,14 @@ in the example above you can't use `set1` or `set2` in `https` service as domain
 Interval between checking remote ssl endpoints. Default is **60s**
 
 * **SSLWATCH_CONNECTION_TIMEOUT**  
-Timeout for the container inspect API call. Default is **10s**
+Timeout for the TCP connection to each IP endpoint. Default is **10s**
 
 * **SSLWATCH_LOOKUP_TIMEOUT**  
-Timeout for the container inspect API call. Default is **5s**
+Timeout for resolving a domain name. Default is **5s**
 
 * **SSLWATCH_PORT**  
 Port on which to start http server to serve metrics. Default is **9105**.
-Metrics will be available at `http://localhost:9105/metrics`.
+Metrics will be available at `http://*:9105/metrics`.
 
 * **SSLWATCH_DEBUG_MODE**  
 Turns on debug level logging. Default is **false**.
