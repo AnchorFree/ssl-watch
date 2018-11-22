@@ -38,11 +38,28 @@ type Metrics struct {
 	mutex sync.RWMutex
 }
 
-// Domains is a struct to hold parsed information from
-// config files.
-type Domains struct {
-	db    map[string][]string
-	mutex sync.RWMutex
+// Service is a struct for a user defined service, which is
+// an arbitrary service name, a list of domains with
+// optional IP endpoints, and an optional list of named IP sets:
+// ---JSON---
+// { "serviceName" :
+//    { "ips" : { "set1" : [ "127.0.0.1", "127.0.0.2", "127.0.0.3" ], "set2": [ "127.0.0.4" ] },
+//    { "domains" : { "example.com": [], "sample.net": [ "set1", "set2", "127.0.0.5" ] }
+// }
+// ---JSON---
+type Service struct {
+	Desc    string              `json:"desc,omitempty"`
+	Domains map[string][]string `json:"domains"`
+	IPs     map[string][]string `json:"ips,omitempty"`
+}
+
+// Services is a wrapper over a map of services with mutex.
+// It also includes reverseMap to ease looking up service name
+// by domain.
+type Services struct {
+	db         map[string]Service
+	reverseMap map[string]string
+	mutex      sync.RWMutex
 }
 
 // App is main struct of ssl-watch that,
@@ -50,64 +67,75 @@ type Domains struct {
 // Config, Metrics and Domains structures +
 // a logger interface.
 type App struct {
-	domains Domains
-	config  Config
-	log     jsonlog.Logger
-	metrics Metrics
+	config   Config
+	services Services
+	log      jsonlog.Logger
+	metrics  Metrics
 }
 
-// Flush flushes all the values from Domains map.
-func (d *Domains) Flush() {
+func (s *Services) Flush() {
 
-	d.mutex.Lock()
-	d.db = map[string][]string{}
-	d.mutex.Unlock()
-
-}
-
-// Update takes a []byte of JSON and unmarshals
-// it into Domains map.
-func (d *Domains) Update(rawJSON []byte) {
-
-	d.mutex.Lock()
-	json.Unmarshal([]byte(rawJSON), &d.db)
-	d.mutex.Unlock()
+	s.mutex.Lock()
+	s.db = map[string]Service{}
+	s.reverseMap = map[string]string{}
+	s.mutex.Unlock()
 
 }
 
-// List returns a string slice of all
-// domain names in the Domains map.
-func (d *Domains) List() []string {
+func (s *Services) Update(rawJSON []byte) {
 
-	defer d.mutex.RUnlock()
-	domains := []string{}
-	d.mutex.RLock()
-	for domain := range d.db {
-		if strings.Contains(domain, ".") {
-			domains = append(domains, domain)
+	defer s.mutex.Unlock()
+	s.mutex.Lock()
+	json.Unmarshal(rawJSON, &s.db)
+	for name, service := range s.db {
+		for domain := range service.Domains {
+			s.reverseMap[domain] = name
 		}
+	}
+
+}
+
+func (s *Services) ListDomains() []string {
+
+	defer s.mutex.RUnlock()
+	s.mutex.RLock()
+	domains := []string{}
+	for domain := range s.reverseMap {
+		domains = append(domains, domain)
 	}
 	return domains
+
 }
 
-// GetIPs returns a string slice of IP addresses
-// for a given domain from the Domains map.
-func (d *Domains) GetIPs(domain string) []string {
+func (s *Services) GetIPs(domain string) []string {
 
-	defer d.mutex.RUnlock()
+	serviceName, exists := s.GetServiceName(domain)
 	ips := []string{}
-	d.mutex.RLock()
 
-	addrSet, ok := d.db[domain]
-	if ok && len(addrSet) > 0 {
-		if !strings.Contains(addrSet[0], ".") {
-			addrSet, ok = d.db[addrSet[0]]
+	if exists {
+		s.mutex.RLock()
+		service, exists := s.db[serviceName]
+		if exists {
+			for _, ip := range service.Domains[domain] {
+				if !strings.Contains(ip, ".") {
+					ips = append(ips, service.IPs[ip]...)
+				} else {
+					ips = append(ips, ip)
+				}
+			}
 		}
-		for i := range addrSet {
-			ips = append(ips, addrSet[i])
-		}
+		s.mutex.RUnlock()
 	}
 	return ips
+
+}
+
+func (s *Services) GetServiceName(domain string) (string, bool) {
+
+	s.mutex.RLock()
+	service, exists := s.reverseMap[domain]
+	s.mutex.RUnlock()
+	return service, exists
 
 }
 

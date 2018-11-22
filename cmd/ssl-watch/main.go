@@ -20,7 +20,7 @@ func main() {
 			select {
 			case <-sigHUP:
 				app.log.Info("SIGHUP received, reloading configs")
-				app.domains.Flush()
+				app.services.Flush()
 				app.metrics.Flush()
 				app.ReloadConfig()
 			}
