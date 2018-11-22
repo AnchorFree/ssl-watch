@@ -4,15 +4,15 @@ ssl-watch — a tool to monitor SSL certificates expiration
 Description
 -------------
 
-SSLWATCH is a golang daemon to monitor expiration dates
+`ssl-watch` is a golang daemon to monitor expiration dates
 of SSL certificates and export this data as prometheus metrics.
 
 You provide one or more configuration files listing domain names to monitor
 and optionally a list of IP addresses for each domain. Every SCRAPE_INTERVAL 
-SSLWATCH examines certificates for each domain at each IP endpoint and exports 
+`ssl-watch` examines certificates for each domain at each IP endpoint and exports 
 prometheus metrics with expiration date and some additional information. 
 
-Note that SSLWATCH does **not** try to validate the whole certificate chain, the only
+Note that `ssl-watch` does **not** try to validate the whole certificate chain, the only
 thing it does in terms of validation is checking at each IP endpoint whether 
 Common Name of the certificate or one of its' SANs has the domain name defined in the config.
 If it does, than SSLWATCH sets `valid="true"` label in prometheus metrics for this domain,
@@ -21,7 +21,7 @@ otherwise it will be set to `valid="false"`.
 Configuration
 -------------
 
-SSLWATCH is configured with environment variables:
+`ssl-watch` is configured with environment variables:
 
 * **SSLWATCH_CONFIG_DIR**  
 Path to the directory with domains config files. Default is **/etc/ssl-watch**.
@@ -43,7 +43,7 @@ listing domain names to be inspected and their optional IP endpoints:
 ```
 
 Files in the directory that don't have `.conf` suffix are ignored.
-When there are no IP addresses provided for a domain, SSLWATCH will try to resolve
+When there are no IP addresses provided for a domain, `ssl-watch` will try to resolve
 it, and connect to all IP addresses the domain name resolves to. As seen from the example
 above, you can also provide named IP sets and use them as endpoints for particular domains.
 Note that this named IP sets are only valid within a service block where they were declared, i.e.
@@ -68,7 +68,7 @@ Turns on debug level logging. Default is **false**.
 Operation
 ---------
 
-Upon receiving a SIGHUP signal SSLWATCH flushes current metrics
+Upon receiving a SIGHUP signal `ssl-watch` flushes current metrics
 and reloads config files.
 
 Exported metrics
