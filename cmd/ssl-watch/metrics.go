@@ -20,14 +20,15 @@ func (app *App) ShowMetrics(w http.ResponseWriter, r *http.Request) {
 	for _, domain := range domains {
 
 		eps, _ := app.metrics.Get(domain)
+		service, _ := app.services.GetServiceName(domain)
 		if len(eps) == 0 {
-			buf3.WriteString("ssl_watch_domain_unresolved{domain=\"" + domain + "\"} 1\n")
+			buf3.WriteString("ssl_watch_domain_unresolved{domain=\"" + domain + "\",service=\"" + service + "\"} 1\n")
 		}
 		for ip, ep := range eps {
 			if ep.alive {
-				buf1.WriteString("ssl_watch_domain_expiry{domain=\"" + domain + "\",ip=\"" + ip + "\",cn=\"" + ep.CN + "\",alt_names=\"" + strconv.Itoa(ep.AltNamesCount) + "\",valid=\"" + strconv.FormatBool(ep.valid) + "\"} " + strconv.FormatInt(ep.expiry.Unix(), 10) + "\n")
+				buf1.WriteString("ssl_watch_domain_expiry{domain=\"" + domain + "\",service=\"" + service + "\",ip=\"" + ip + "\",cn=\"" + ep.CN + "\",alt_names=\"" + strconv.Itoa(ep.AltNamesCount) + "\",valid=\"" + strconv.FormatBool(ep.valid) + "\"} " + strconv.FormatInt(ep.expiry.Unix(), 10) + "\n")
 			} else {
-				buf2.WriteString("ssl_watch_domain_dead{domain=\"" + domain + "\",ip=\"" + ip + "\"} 1\n")
+				buf2.WriteString("ssl_watch_domain_dead{domain=\"" + domain + "\",service=\"" + service + "\",ip=\"" + ip + "\"} 1\n")
 			}
 		}
 	}

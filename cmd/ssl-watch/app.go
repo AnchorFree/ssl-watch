@@ -24,7 +24,7 @@ func NewApp() *App {
 	}
 
 	app.metrics = Metrics{mutex: sync.RWMutex{}, db: map[string]Endpoints{}}
-	app.domains = Domains{mutex: sync.RWMutex{}, db: map[string][]string{}}
+	app.services = Services{mutex: sync.RWMutex{}, db: map[string]Service{}, reverseMap: map[string]string{}}
 	log.Init("sslwatch", app.config.DebugMode, false, nil)
 	app.log = log
 	app.ReloadConfig()
@@ -44,14 +44,14 @@ func (app *App) ReloadConfig() {
 			if err != nil {
 				app.log.Error("can't read config file "+file.Name(), err)
 			}
-			app.domains.Update(raw)
+			app.services.Update(raw)
 		}
 	}
 
-	if len(app.domains.db) == 0 {
+	if len(app.services.db) == 0 {
 		app.log.Fatal("no configs provided", errors.New("no config files"))
 	}
-	app.log.Debug("domains read from configs", app.domains.List())
+	app.log.Debug("domains read from configs", app.services.ListDomains())
 
 }
 
@@ -131,12 +131,12 @@ func (app *App) updateMetrics() {
 	defer ticker.Stop()
 
 	for ; true; <-ticker.C {
-		domains := app.domains.List()
+		domains := app.services.ListDomains()
 		app.log.Debug("current domains", domains)
 		for _, domain := range domains {
 			app.log.Debug("processing domain " + domain)
-			addrSet := app.domains.GetIPs(domain)
-			eps := app.ProcessDomain(domain, StrToIp(addrSet))
+			ips := app.services.GetIPs(domain)
+			eps := app.ProcessDomain(domain, StrToIp(ips))
 			app.metrics.Set(domain, eps)
 		}
 	}
