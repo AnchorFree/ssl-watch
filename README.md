@@ -4,7 +4,7 @@ ssl-watch — a tool to monitor SSL certificates expiration
 Description
 -------------
 
-SSLWATCH is a golang daemon to monitor expiry dates
+SSLWATCH is a golang daemon to monitor expiration dates
 of SSL certificates and export this data as prometheus metrics.
 
 You provide one or more configuration files listing domain names to monitor
