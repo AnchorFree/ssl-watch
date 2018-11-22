@@ -31,14 +31,15 @@ listing domain names to be inspected and their optional IP endpoints:
 ```json
 { 
   "mailCerts" :
-    { "ips" : { "set1" : [ "127.0.0.1", "127.0.0.2", "127.0.0.3" ], "set2": [ "127.0.0.4" ] },
-    { "domains" : { "example.com:465": [], "sample.net:993": [ "set1", "set2", "127.0.0.5" ] } 
-  }
+    { 
+      "ips" : { "set1" : [ "127.0.0.1", "127.0.0.2", "127.0.0.3" ], "set2": [ "127.0.0.4" ] },
+      "domains" : { "example.com:465": [], "sample.net:993": [ "set1", "set2", "127.0.0.5" ] } 
+    },
   
-  "https" : {
-    { "domains" : { "web-domain-1.com": [], "web-domain-2.com:8443": [], "secret-site.io": [ "192.168.0.7", "192.168.0.8" ] } }
-  }
-
+  "https" : 
+    {
+      "domains" : { "web-domain-1.com": [], "web-domain-2.com:8443": [], "secret-site.io": [ "192.168.0.7", "192.168.0.8" ] } 
+    }
 }
 ```
 
