@@ -58,15 +58,15 @@ and to `https` for `jack.com`,`daniels.org` and `absinth.io` domains.
 Files in the directory that don't have `.conf` suffix are ignored.
 When there are no IP addresses provided for a domain, `ssl-watch` will try to resolve
 it, and connect to all IP addresses the domain name resolves to. As seen from the example
-above, you can also provide named IP sets and use them as endpoints for particular domains.
-Note that this named IP sets are only valid within a service block where they were declared, i.e.
-in the example above you can't use `set1` or `set2` in `https` service as domains endpoints.
+above, you can also provide named IP sets and use them as endpoints for all or some of domains.
+Note that a particular named IP set is only valid within a service block where it was declared, i.e.
+in the example above you can't use `set1` or `set2` as domain endpoints in `https` service.
 
 * **SSLWATCH_SCRAPE_INTERVAL**  
 Interval between checking remote ssl endpoints. Default is **60s**
 
 * **SSLWATCH_CONNECTION_TIMEOUT**  
-Timeout for the TCP connection to each IP endpoint. Default is **10s**
+TCP connection timeout. Default is **10s**
 
 * **SSLWATCH_LOOKUP_TIMEOUT**  
 Timeout for resolving a domain name. Default is **5s**
@@ -97,4 +97,4 @@ Exported metrics
 Credits
 -------
 
-`ssl-watch` was inspired and loosely based (at least in the beginning) on the code of [check-ssl](https://github.com/wycore/check-ssl) project.
+`ssl-watch` is inspired and loosely based on the code of [check-ssl](https://github.com/wycore/check-ssl) project.
