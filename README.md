@@ -1,6 +1,14 @@
 ssl-watch — a tool to monitor SSL certificates expiration
 =========================================================
 
+Table of Contents
+-----------------
+* [Description](#description)
+* [Configuration](#configuration)
+* [Operation](#operation)
+* [Exported metrics](#exported-metrics)
+* [Credits](#credits)
+
 Description
 -------------
 
@@ -82,6 +90,11 @@ Exported metrics
 | Name | Type | Labels | Remarks |
 | ---- | ---- | ------ | ------- |
 | ssl_watch_domain_expiry | gauge | domain, service, ip, cn, alt_names, valid | expiration date in Unix time. `service` is service name from the config, `cn` is common name of the certificate, `alt_names` shows count of SANs in the certificate, `valid` will be set to true if certificates's CommonName or one of its' SANs has `domain` defined.|
-| ssl_watch_domain_dead | gauge | domain, service, ip | this metric will be set to 1 when SSLWATCH fails to connect to an ip |
-| ssl_watch_domain_unresolved | gauge | domain, service | this metric will be set to 1 when SSLWATCH can't resolve a domain |
+| ssl_watch_domain_dead | gauge | domain, service, ip | this metric will be set to 1 when SSLWATCH fails to connect to an IP endpoint |
+| ssl_watch_domain_unresolved | gauge | domain, service | this metric will be set to 1 when SSLWATCH fails to resolve a domain |
 
+
+Credits
+-------
+
+`ssl-watch` was inspired and loosely based (at least in the beginning) on the code of [check-ssl](https://github.com/wycore/check-ssl) project.
