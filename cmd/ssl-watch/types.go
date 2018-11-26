@@ -24,6 +24,7 @@ type Config struct {
 type Endpoint struct {
 	CN            string
 	AltNamesCount int
+	sha1          string
 	expiry        time.Time
 	valid         bool
 	alive         bool
@@ -43,8 +44,8 @@ type Metrics struct {
 // optional IP endpoints, and an optional list of named IP sets:
 // ---JSON---
 // { "serviceName" :
-//    { "ips" : { "set1" : [ "127.0.0.1", "127.0.0.2", "127.0.0.3" ], "set2": [ "127.0.0.4" ] },
-//    { "domains" : { "example.com": [], "sample.net": [ "set1", "set2", "127.0.0.5" ] }
+//    "ips" : { "set1" : [ "127.0.0.1", "127.0.0.2", "127.0.0.3" ], "set2": [ "127.0.0.4" ] },
+//    "domains" : { "example.com": [], "sample.net": [ "set1", "set2", "127.0.0.5" ] }
 // }
 // ---JSON---
 type Service struct {

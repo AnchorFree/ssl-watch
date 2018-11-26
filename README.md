@@ -13,7 +13,7 @@ Description
 -------------
 
 `ssl-watch` is a golang daemon to monitor expiration dates
-of SSL certificates and export this data as prometheus metrics.
+of SSL certificates and export this data as [prometheus](https://prometheus.io/) metrics.
 
 You provide one or more configuration files listing domain names to monitor
 and optionally a list of IP addresses for each domain. Every SCRAPE_INTERVAL 
@@ -89,7 +89,7 @@ Exported metrics
 
 | Name | Type | Labels | Remarks |
 | ---- | ---- | ------ | ------- |
-| ssl_watch_domain_expiry | gauge | domain, service, ip, cn, alt_names, valid | expiration date in Unix time. `service` is service name from the config, `cn` is common name of the certificate, `alt_names` shows count of SANs in the certificate, `valid` will be set to true if certificates's CommonName or one of its' SANs has `domain` defined.|
+| ssl_watch_domain_expiry | gauge | domain, service, ip, cn, alt_names, valid | expiration date in Unix time. `service` is service name from the config, `cn` is common name of the certificate, `sha` is a SHA1 fingerprint of the certificate, `alt_names` shows count of SANs in the certificate, `valid` will be set to true if certificates's CommonName or one of its' SANs has `domain` defined.|
 | ssl_watch_domain_dead | gauge | domain, service, ip | this metric will be set to 1 when SSLWATCH fails to connect to an IP endpoint |
 | ssl_watch_domain_unresolved | gauge | domain, service | this metric will be set to 1 when SSLWATCH fails to resolve a domain |
 
