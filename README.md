@@ -13,7 +13,7 @@ Description
 -------------
 
 `ssl-watch` is a golang daemon to monitor expiration dates
-of SSL certificates and export this data as prometheus metrics.
+of SSL certificates and export this data as [prometheus](https://prometheus.io/) metrics.
 
 You provide one or more configuration files listing domain names to monitor
 and optionally a list of IP addresses for each domain. Every SCRAPE_INTERVAL 
@@ -58,15 +58,15 @@ and to `https` for `jack.com`,`daniels.org` and `absinth.io` domains.
 Files in the directory that don't have `.conf` suffix are ignored.
 When there are no IP addresses provided for a domain, `ssl-watch` will try to resolve
 it, and connect to all IP addresses the domain name resolves to. As seen from the example
-above, you can also provide named IP sets and use them as endpoints for particular domains.
-Note that this named IP sets are only valid within a service block where they were declared, i.e.
-in the example above you can't use `set1` or `set2` in `https` service as domains endpoints.
+above, you can also provide named IP sets and use them as endpoints for all or some of domains.
+Note that a particular named IP set is only valid within a service block where it was declared, i.e.
+in the example above you can't use `set1` or `set2` as domain endpoints in `https` service.
 
 * **SSLWATCH_SCRAPE_INTERVAL**  
 Interval between checking remote ssl endpoints. Default is **60s**
 
 * **SSLWATCH_CONNECTION_TIMEOUT**  
-Timeout for the TCP connection to each IP endpoint. Default is **10s**
+TCP connection timeout. Default is **10s**
 
 * **SSLWATCH_LOOKUP_TIMEOUT**  
 Timeout for resolving a domain name. Default is **5s**
@@ -89,7 +89,7 @@ Exported metrics
 
 | Name | Type | Labels | Remarks |
 | ---- | ---- | ------ | ------- |
-| ssl_watch_domain_expiry | gauge | domain, service, ip, cn, alt_names, valid | expiration date in Unix time. `service` is service name from the config, `cn` is common name of the certificate, `alt_names` shows count of SANs in the certificate, `valid` will be set to true if certificates's CommonName or one of its' SANs has `domain` defined.|
+| ssl_watch_domain_expiry | gauge | domain, service, ip, cn, alt_names, valid | expiration date in Unix time. `service` is service name from the config, `cn` is common name of the certificate, `sha` is a SHA1 fingerprint of the certificate, `alt_names` shows count of SANs in the certificate, `valid` will be set to true if certificates's CommonName or one of its' SANs has `domain` defined.|
 | ssl_watch_domain_dead | gauge | domain, service, ip | this metric will be set to 1 when SSLWATCH fails to connect to an IP endpoint |
 | ssl_watch_domain_unresolved | gauge | domain, service | this metric will be set to 1 when SSLWATCH fails to resolve a domain |
 
@@ -97,4 +97,4 @@ Exported metrics
 Credits
 -------
 
-`ssl-watch` was inspired and loosely based (at least in the beginning) on the code of [check-ssl](https://github.com/wycore/check-ssl) project.
+`ssl-watch` is inspired and loosely based on the code of [check-ssl](https://github.com/wycore/check-ssl) project.

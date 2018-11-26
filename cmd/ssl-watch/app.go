@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha1"
 	"crypto/tls"
+	"encoding/hex"
 	"errors"
 	"github.com/anchorfree/golang/pkg/jsonlog"
 	"github.com/kelseyhightower/envconfig"
@@ -83,8 +85,11 @@ func (app *App) ProcessDomain(domain string, ips []net.IP) Endpoints {
 				continue
 			}
 
+			sha := sha1.New()
 			cert := connection.ConnectionState().PeerCertificates[0]
 			endpoint.alive = true
+			sha.Write(cert.Raw)
+			endpoint.sha1 = hex.EncodeToString(sha.Sum(nil))
 			endpoint.expiry = cert.NotAfter
 			endpoint.CN = cert.Subject.CommonName
 			endpoint.AltNamesCount = len(cert.DNSNames)

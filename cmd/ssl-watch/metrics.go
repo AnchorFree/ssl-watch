@@ -26,7 +26,7 @@ func (app *App) ShowMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		for ip, ep := range eps {
 			if ep.alive {
-				buf1.WriteString("ssl_watch_domain_expiry{domain=\"" + domain + "\",service=\"" + service + "\",ip=\"" + ip + "\",cn=\"" + ep.CN + "\",alt_names=\"" + strconv.Itoa(ep.AltNamesCount) + "\",valid=\"" + strconv.FormatBool(ep.valid) + "\"} " + strconv.FormatInt(ep.expiry.Unix(), 10) + "\n")
+				buf1.WriteString("ssl_watch_domain_expiry{domain=\"" + domain + "\",service=\"" + service + "\",sha=\"" + string(ep.sha1) + "\",ip=\"" + ip + "\",cn=\"" + ep.CN + "\",alt_names=\"" + strconv.Itoa(ep.AltNamesCount) + "\",valid=\"" + strconv.FormatBool(ep.valid) + "\"} " + strconv.FormatInt(ep.expiry.Unix(), 10) + "\n")
 			} else {
 				buf2.WriteString("ssl_watch_domain_dead{domain=\"" + domain + "\",service=\"" + service + "\",ip=\"" + ip + "\"} 1\n")
 			}
