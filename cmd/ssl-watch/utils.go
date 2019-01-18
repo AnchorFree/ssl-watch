@@ -22,3 +22,18 @@ func StrToIp(IPList []string) []net.IP {
 	return ips
 
 }
+
+func ParseS3Path(path string) (bucket, key string) {
+
+	if strings.HasPrefix(path, "s3://") {
+		firstSlash := strings.Index(path[5:], "/")
+		if firstSlash > 0 {
+			bucket = path[5 : 5+firstSlash]
+			key = path[5+firstSlash+1:]
+		} else {
+			bucket = path[5:]
+		}
+	}
+	return bucket, key
+
+}
