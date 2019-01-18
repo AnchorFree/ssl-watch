@@ -71,7 +71,7 @@ Default is **.conf**
 * **SSLWATCH_AUTO_RELOAD**  
 When you set **SSLWATCH_CONFIG_DIR** to an s3 path, this setting controls
 whether `ssl-watch` should reload configs from s3 automatically if any of them have been changed.
-If set to `true`, `ssl-watch` will check for config changes every **SSLWATCH_CONFIG_CHECK_INTERVAL, and reload them upon any changes.
+If set to `true`, `ssl-watch` will check for config changes every **SSLWATCH_CONFIG_CHECK_INTERVAL**, and reload them upon any changes.
 Default is **true**
 
 * **SSLWATCH_CONFIG_CHECK_INTERVAL**  
