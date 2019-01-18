@@ -12,6 +12,7 @@ RUN cd /go && go build github.com/anchorfree/ssl-watch/cmd/ssl-watch
 FROM alpine:3.8
 LABEL maintainer="v.zorin@anchorfree.com"
 
+RUN apk add --no-cache ca-certificates
 COPY --from=builder /go/ssl-watch /usr/local/bin/ssl-watch
 
 ENTRYPOINT ["/usr/local/bin/ssl-watch"]

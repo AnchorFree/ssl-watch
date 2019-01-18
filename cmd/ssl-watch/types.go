@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/anchorfree/golang/pkg/jsonlog"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"strings"
 	"sync"
 	"time"
@@ -10,12 +11,18 @@ import (
 
 // Config holds processed configuration from environment variables
 type Config struct {
-	ConfigDir         string        `default:"/etc/ssl-watch" split_words:"true"`
-	ScrapeInterval    time.Duration `default:"60s" split_words:"true"`
-	ConnectionTimeout time.Duration `default:"10s" split_words:"true"`
-	LookupTimeout     time.Duration `default:"5s" split_words:"true"`
-	DebugMode         bool          `default:"false" split_words:"true"`
-	Port              string        `default:"9105"`
+	ConfigDir           string        `default:"/etc/ssl-watch" split_words:"true"`
+	ConfigFileSuffix    string        `default:".conf"          split_words:"true"`
+	ScrapeInterval      time.Duration `default:"60s"            split_words:"true"`
+	ConnectionTimeout   time.Duration `default:"10s"            split_words:"true"`
+	LookupTimeout       time.Duration `default:"5s"             split_words:"true"`
+	ConfigCheckInterval time.Duration `default:"5m"             split_words:"true"`
+	DebugMode           bool          `default:"false"          split_words:"true"`
+	Port                string        `default:"9105"`
+	AutoReload          bool          `default:"true"           split_words:"true"`
+	S3Region            string        `default:"us-east-1"      split_words:"true"`
+	S3Bucket            string
+	S3Key               string
 }
 
 // Endpoint is a struct for holding info about a single domain endpoint,
@@ -68,10 +75,12 @@ type Services struct {
 // Config, Metrics and Domains structures +
 // a logger interface.
 type App struct {
-	config   Config
-	services Services
-	log      jsonlog.Logger
-	metrics  Metrics
+	config    Config
+	services  Services
+	log       jsonlog.Logger
+	metrics   Metrics
+	S3Configs map[string]string
+	S3Session *session.Session
 }
 
 func (s *Services) Flush() {

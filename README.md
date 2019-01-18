@@ -33,7 +33,7 @@ Configuration
 
 * **SSLWATCH_CONFIG_DIR**  
 Path to the directory with domains config files. Default is **/etc/ssl-watch**.
-Each file in the directory should have a `.conf` suffix, and be in JSON format, 
+Each file in the directory should have a `.conf` suffix (configurable via **SSLWATCH_CONFIG_FILE_SUFFIX**), and be in JSON format, 
 listing domain names to be inspected and their optional IP endpoints.
 Domain names and their IP endpoints should be grouped into "services" blocks:
 
@@ -61,6 +61,21 @@ it, and connect to all IP addresses the domain name resolves to. As seen from th
 above, you can also provide named IP sets and use them as endpoints for all or some of domains.
 Note that a particular named IP set is only valid within a service block where it was declared, i.e.
 in the example above you can't use `set1` or `set2` as domain endpoints in `https` service.
+
+You can also set **SSLWATCH_CONFIG_DIR** to an AWS S3 bucket path, for ex.: `s3://my-s3-bucket/some/dir`.
+In this case `ssl-watch` will read configs from S3 bucket.
+
+* **SSLWATCH_CONFIG_FILE_SUFFIX**  
+Default is **.conf**
+
+* **SSLWATCH_AUTO_RELOAD**  
+When you set **SSLWATCH_CONFIG_DIR** to an s3 path, this setting controls
+whether `ssl-watch` should reload configs from s3 automatically if any of them have been changed.
+If set to `true`, `ssl-watch` will check for config changes every **SSLWATCH_CONFIG_CHECK_INTERVAL**, and reload them upon any changes.
+Default is **true**
+
+* **SSLWATCH_CONFIG_CHECK_INTERVAL**  
+Default is **5m**
 
 * **SSLWATCH_SCRAPE_INTERVAL**  
 Interval between checking remote ssl endpoints. Default is **60s**
