@@ -2,15 +2,14 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
-	"errors"
-	"github.com/anchorfree/golang/pkg/jsonlog"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/kelseyhightower/envconfig"
+	"go.uber.org/zap"
 	"io"
 	"io/ioutil"
 	"net"
@@ -21,24 +20,26 @@ import (
 
 func NewApp() *App {
 
-	log := &jsonlog.StdLogger{}
-	log.Init("sslwatch", false, false, nil)
+	logger, _ := zap.NewDevelopment()
 
 	app := &App{config: Config{}}
 	err := envconfig.Process("sslwatch", &app.config)
 	if err != nil {
-		log.Fatal("failed to initialize", err)
+		logger.Fatal("failed to initialize")
 	}
 
 	app.metrics = Metrics{mutex: sync.RWMutex{}, db: map[string]Endpoints{}}
 	app.services = Services{mutex: sync.RWMutex{}, db: map[string]Service{}, reverseMap: map[string]string{}}
-	log.Init("sslwatch", app.config.DebugMode, false, nil)
-	app.log = log
+	if !app.config.DebugMode {
+		logger, _ = zap.NewProduction()
+	}
+	defer logger.Sync()
+	app.log = *logger
 	app.config.S3Bucket, app.config.S3Key = ParseS3Path(app.config.ConfigDir)
 	if app.config.S3Bucket != "" {
 		err := app.CreateS3Session()
 		if err != nil {
-			app.log.Fatal("can't init S3 session", err)
+			app.log.Fatal("can't init S3 session", zap.Error(err))
 		}
 	}
 	app.ReloadConfig()
@@ -60,7 +61,7 @@ func (app *App) reloadConfigFromFiles() {
 
 	files, err := ioutil.ReadDir(app.config.ConfigDir)
 	if err != nil {
-		app.log.Error("can't read config files dir", err)
+		app.log.Error("can't read config files dir", zap.Error(err))
 	}
 
 	for _, file := range files {
@@ -69,15 +70,15 @@ func (app *App) reloadConfigFromFiles() {
 			if err == nil {
 				app.services.Update(raw)
 			} else {
-				app.log.Error("can't read config file "+file.Name(), err)
+				app.log.Error("can't read config file "+file.Name(), zap.Error(err))
 			}
 		}
 	}
 
 	if len(app.services.db) == 0 {
-		app.log.Fatal("no configs provided", errors.New("no config files"))
+		app.log.Fatal("no configs provided")
 	}
-	app.log.Debug("domains read from configs", app.services.ListDomains())
+	app.log.Debug("domains read from configs", zap.Strings("domains", app.services.ListDomains()))
 
 }
 
@@ -85,7 +86,7 @@ func (app *App) reloadConfigFromS3() {
 
 	configHashes, err := app.GetS3ConfigHashes()
 	if err != nil {
-		app.log.Error("can't stat objects in s3 bucket", err)
+		app.log.Error("can't stat objects in s3 bucket", zap.Error(err))
 	}
 
 	for config := range configHashes {
@@ -93,15 +94,15 @@ func (app *App) reloadConfigFromS3() {
 		if err == nil {
 			app.services.Update(raw)
 		} else {
-			app.log.Error("failed to read s3 config "+config, err)
+			app.log.Error("failed to read s3 config "+config, zap.Error(err))
 		}
 	}
 
 	if len(app.services.db) == 0 {
-		app.log.Fatal("no configs provided", errors.New("no config files"))
+		app.log.Fatal("no configs provided")
 	}
 	app.S3Configs = configHashes
-	app.log.Debug("domains read from configs", app.services.ListDomains())
+	app.log.Debug("domains read from configs", zap.Strings("domains", app.services.ListDomains()))
 
 }
 
@@ -125,19 +126,21 @@ func (app *App) ProcessDomain(domain string, ips []net.IP) Endpoints {
 		if IsIPv4(ip.String()) {
 
 			endpoint := Endpoint{}
-			connection, err := tls.DialWithDialer(&dialer, "tcp", ip.String()+":"+port, &tls.Config{ServerName: host, InsecureSkipVerify: true})
+			// We want to be able to connect to an endpoint with an expired/invalid certificate, that's why why use InsecureSkipVerify opion.
+			// However, we need to clearly mark this for gosec, otherwise it considers this as a vulnerability
+			connection, err := tls.DialWithDialer(&dialer, "tcp", ip.String()+":"+port, &tls.Config{ServerName: host, InsecureSkipVerify: true}) // #nosec
 			if err != nil {
-				app.log.Error(ip.String(), err)
+				app.log.Error(ip.String(), zap.Error(err))
 				endpoint.alive = false
 				endpoints[ip.String()] = endpoint
 				continue
 			}
 
-			sha := sha1.New()
+			sha := sha256.New()
 			cert := connection.ConnectionState().PeerCertificates[0]
 			endpoint.alive = true
 			sha.Write(cert.Raw)
-			endpoint.sha1 = hex.EncodeToString(sha.Sum(nil))
+			endpoint.sha256 = hex.EncodeToString(sha.Sum(nil))
 			endpoint.expiry = cert.NotAfter
 			endpoint.CN = cert.Subject.CommonName
 			endpoint.AltNamesCount = len(cert.DNSNames)
@@ -147,7 +150,7 @@ func (app *App) ProcessDomain(domain string, ips []net.IP) Endpoints {
 			} else {
 				endpoint.valid = true
 			}
-			connection.Close()
+			_ = connection.Close()
 			endpoints[ip.String()] = endpoint
 		}
 	}
@@ -163,7 +166,7 @@ func (app *App) ResolveDomain(domain string) []net.IP {
 	go func() {
 		r, err := net.LookupIP(domain)
 		if err != nil {
-			app.log.Error("failed to lookup "+domain, err)
+			app.log.Error("failed to lookup "+domain, zap.Error(err))
 			return
 		}
 		ch <- r
@@ -185,7 +188,7 @@ func (app *App) updateMetrics() {
 
 	for ; true; <-ticker.C {
 		domains := app.services.ListDomains()
-		app.log.Debug("current domains", domains)
+		app.log.Debug("current domains", zap.Strings("domains", domains))
 		for _, domain := range domains {
 			app.log.Debug("processing domain " + domain)
 			ips := app.services.GetIPs(domain)

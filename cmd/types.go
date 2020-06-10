@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/anchorfree/golang/pkg/jsonlog"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"go.uber.org/zap"
 	"strings"
 	"sync"
 	"time"
@@ -31,7 +31,7 @@ type Config struct {
 type Endpoint struct {
 	CN            string
 	AltNamesCount int
-	sha1          string
+	sha256        string
 	expiry        time.Time
 	valid         bool
 	alive         bool
@@ -77,7 +77,7 @@ type Services struct {
 type App struct {
 	config    Config
 	services  Services
-	log       jsonlog.Logger
+	log       zap.Logger
 	metrics   Metrics
 	S3Configs map[string]string
 	S3Session *session.Session
