@@ -2,7 +2,7 @@ FROM golang:1.14-alpine3.11 as builder
 LABEL maintainer="v.zorin@anchorfree.com"
 
 RUN apk add --no-cache git
-COPY cmd /cmd
+COPY . /cmd
 RUN cd /cmd && go build
 
 FROM alpine:3.11
