@@ -139,7 +139,7 @@ func (app *App) ProcessDomain(domain string, ips []net.IP) Endpoints {
 			sha := sha256.New()
 			cert := connection.ConnectionState().PeerCertificates[0]
 			endpoint.alive = true
-			sha.Write(cert.Raw)
+			_, _ = sha.Write(cert.Raw)
 			endpoint.sha256 = hex.EncodeToString(sha.Sum(nil))
 			endpoint.expiry = cert.NotAfter
 			endpoint.CN = cert.Subject.CommonName

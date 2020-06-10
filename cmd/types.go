@@ -96,7 +96,7 @@ func (s *Services) Update(rawJSON []byte) {
 
 	defer s.mutex.Unlock()
 	s.mutex.Lock()
-	json.Unmarshal(rawJSON, &s.db)
+	_ = json.Unmarshal(rawJSON, &s.db)
 	for name, service := range s.db {
 		for domain := range service.Domains {
 			s.reverseMap[domain] = name

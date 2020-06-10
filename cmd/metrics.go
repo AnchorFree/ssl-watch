@@ -33,6 +33,6 @@ func (app *App) ShowMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Write([]byte(buf1.String() + buf2.String() + buf3.String()))
+	_, _ = w.Write([]byte(buf1.String() + buf2.String() + buf3.String()))
 
 }
