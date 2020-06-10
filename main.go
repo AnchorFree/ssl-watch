@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
@@ -57,6 +58,6 @@ func main() {
 	rtr := mux.NewRouter()
 	rtr.HandleFunc("/metrics", app.ShowMetrics).Methods("GET")
 	http.Handle("/", rtr)
-	app.log.Fatal("http server stopped", http.ListenAndServe(":"+app.config.Port, nil))
+	app.log.Fatal("http server stopped", zap.Error(http.ListenAndServe(":"+app.config.Port, nil)))
 
 }
