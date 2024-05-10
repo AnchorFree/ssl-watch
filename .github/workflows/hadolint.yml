@@ -1,0 +1,18 @@
+# Workflow managed by https://github.com/AnchorFree/workflows/
+name: Hadolint Linter
+on: [pull_request]
+jobs:
+  hadolint:
+    name: Hadolint scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Scanning the dockerfile
+        uses: reviewdog/action-hadolint@v1.39.0
+        with:
+          reporter: github-pr-review
+          filter_mode: file
