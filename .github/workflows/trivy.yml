@@ -32,14 +32,14 @@ jobs:
         run: git lfs checkout
 
       - name: Run Trivy vulnerability scanner in repo mode (table)
-        uses: aquasecurity/trivy-action@0.22.0
+        uses: aquasecurity/trivy-action@0.23.0
         with:
           scan-type: 'fs'
           ignore-unfixed: true
           format: 'table'
 
       - name: Run Trivy vulnerability scanner in repo mode (sarif)
-        uses: aquasecurity/trivy-action@0.22.0
+        uses: aquasecurity/trivy-action@0.23.0
         with:
           scan-type: 'fs'
           ignore-unfixed: true
@@ -72,14 +72,14 @@ jobs:
         run: |
           docker build -t ${{ github.sha }} .
       - name: Run Trivy vulnerability scanner in image mode (table output)
-        uses: aquasecurity/trivy-action@0.22.0
+        uses: aquasecurity/trivy-action@0.23.0
         with:
           image-ref: '${{ github.sha }}'
           ignore-unfixed: true
           format: 'table'
 
       - name: Run Trivy vulnerability scanner in image mode (sarif output)
-        uses: aquasecurity/trivy-action@0.22.0
+        uses: aquasecurity/trivy-action@0.23.0
         with:
           image-ref: '${{ github.sha }}'
           ignore-unfixed: true
