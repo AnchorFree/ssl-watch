@@ -21,6 +21,9 @@ jobs:
       actions: read
     name: Trivy repo scan
     runs-on: ubuntu-latest
+    env:
+      TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
+      TRIVY_JAVA_DB_REPOSTITORY: public.ecr.aws/aquasecurity/trivy-java-db:1
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,14 +35,14 @@ jobs:
         run: git lfs checkout
 
       - name: Run Trivy vulnerability scanner in repo mode (table)
-        uses: aquasecurity/trivy-action@0.26.0
+        uses: aquasecurity/trivy-action@0.24.0
         with:
           scan-type: 'fs'
           ignore-unfixed: true
           format: 'table'
 
       - name: Run Trivy vulnerability scanner in repo mode (sarif)
-        uses: aquasecurity/trivy-action@0.26.0
+        uses: aquasecurity/trivy-action@0.24.0
         with:
           scan-type: 'fs'
           ignore-unfixed: true
@@ -71,15 +74,16 @@ jobs:
       - name: Build an image from Dockerfile
         run: |
           docker build -t ${{ github.sha }} .
+
       - name: Run Trivy vulnerability scanner in image mode (table output)
-        uses: aquasecurity/trivy-action@0.26.0
+        uses: aquasecurity/trivy-action@0.24.0
         with:
           image-ref: '${{ github.sha }}'
           ignore-unfixed: true
           format: 'table'
 
       - name: Run Trivy vulnerability scanner in image mode (sarif output)
-        uses: aquasecurity/trivy-action@0.26.0
+        uses: aquasecurity/trivy-action@0.24.0
         with:
           image-ref: '${{ github.sha }}'
           ignore-unfixed: true
