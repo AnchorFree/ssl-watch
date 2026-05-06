@@ -10,7 +10,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Scanning the dockerfile
         uses: reviewdog/action-hadolint@15df5a025251f3b06814d53ba1e782f5a42b2874 # v1.44.0
         with:
