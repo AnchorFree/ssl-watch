@@ -1,7 +1,9 @@
-# Workflow managed by https://github.com/AnchorFree/workflows/
 name: Hadolint Linter
 on: [pull_request]
 jobs:
+  # Inlined from AnchorFree/secops-workflows reusable-hadolint.yml. ssl-watch is public and
+  # secops-workflows is internal, and a public repository cannot call an internal reusable
+  # workflow.
   hadolint:
     name: Hadolint scan
     runs-on: ubuntu-latest
@@ -10,9 +12,11 @@ jobs:
       pull-requests: write
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Scanning the dockerfile
-        uses: reviewdog/action-hadolint@15df5a025251f3b06814d53ba1e782f5a42b2874 # v1.44.0
+        uses: reviewdog/action-hadolint@1df92335c6c70880e301926d46148aeb27de1912 # v1.55.0
         with:
           reporter: github-pr-review
           filter_mode: file
+          hadolint_ignore: DL3008 DL3018

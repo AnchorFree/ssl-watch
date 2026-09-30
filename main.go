@@ -35,7 +35,7 @@ func main() {
 		app.log.Info("config check interval is " + app.config.ConfigCheckInterval.String())
 		ticker := time.NewTicker(app.config.ConfigCheckInterval)
 		go func() {
-			for _ = range ticker.C {
+			for range ticker.C {
 				app.log.Debug("checking s3 configs for changes")
 				current, err := app.GetS3ConfigHashes()
 				if err == nil {
@@ -57,7 +57,15 @@ func main() {
 
 	rtr := mux.NewRouter()
 	rtr.HandleFunc("/metrics", app.ShowMetrics).Methods("GET")
-	http.Handle("/", rtr)
-	app.log.Fatal("http server stopped", zap.Error(http.ListenAndServe(":"+app.config.Port, nil)))
+	// Bound every phase of a request, so a slow or idle client cannot hold a connection open.
+	srv := &http.Server{
+		Addr:              ":" + app.config.Port,
+		Handler:           rtr,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+	app.log.Fatal("http server stopped", zap.Error(srv.ListenAndServe()))
 
 }

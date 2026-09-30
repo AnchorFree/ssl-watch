@@ -7,10 +7,15 @@ updates:
       interval: "daily"
     cooldown:
       default-days: 7
+    # Group every update type, majors included. Ungrouped, Dependabot treats
+    # github/codeql-action/init, /autobuild, /analyze and /upload-sarif as four separate
+    # dependencies and opens a pull request for each. All four must pin the same version: init
+    # writes a config file stamped with its own version, and a later step running a different
+    # major fails with "Loaded a configuration file for version X, but running version Y". So a
+    # per-step pull request is unmergeable by construction.
     groups:
       github-actions:
         patterns:
           - "*"
-        update-types:
-          - "minor"
-          - "patch"
+    ignore:
+      - dependency-name: "AnchorFree/secops-workflows"

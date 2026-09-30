@@ -49,12 +49,11 @@ type Metrics struct {
 // Service is a struct for a user defined service, which is
 // an arbitrary service name, a list of domains with
 // optional IP endpoints, and an optional list of named IP sets:
-// ---JSON---
-// { "serviceName" :
-//    "ips" : { "set1" : [ "127.0.0.1", "127.0.0.2", "127.0.0.3" ], "set2": [ "127.0.0.4" ] },
-//    "domains" : { "example.com": [], "sample.net": [ "set1", "set2", "127.0.0.5" ] }
-// }
-// ---JSON---
+//
+//	{ "serviceName" :
+//	   "ips" : { "set1" : [ "127.0.0.1", "127.0.0.2", "127.0.0.3" ], "set2": [ "127.0.0.4" ] },
+//	   "domains" : { "example.com": [], "sample.net": [ "set1", "set2", "127.0.0.5" ] }
+//	}
 type Service struct {
 	Desc    string              `json:"desc,omitempty"`
 	Domains map[string][]string `json:"domains"`
