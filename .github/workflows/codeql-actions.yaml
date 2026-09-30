@@ -1,0 +1,41 @@
+name: "CodeQL Actions"
+
+# Separate from CodeQL Golang rather than a second language in it. The Go job needs a Vault
+# credential, a Go toolchain, a vendor step and a SARIF filter, none of which apply here, and
+# a matrix would make every one of those conditional on the language.
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  # On a pull request the action restricts every alerting query to the lines in the diff, so a
+  # change that touches no workflow reports nothing. Dispatch scans the whole tree instead.
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    # Analysis of the actions language reads the workflow YAML directly, so there is no build
+    # and nothing to configure. Actions that the workflows call are not checked out, so every
+    # finding is first-party by construction and needs no filtering.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+      with:
+        languages: 'actions'
+        build-mode: none
+        # The default suite runs @precision high queries only, which skips the
+        # medium-precision set.
+        queries: security-extended
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0

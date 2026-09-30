@@ -1,96 +1,27 @@
-# Workflow managed by https://github.com/AnchorFree/workflows/
-name: Trivy scan
-
+name: Trivy Scan
 on:
-  push:
-    branches: [ "master" ]
   pull_request:
     types: [opened, reopened, synchronize]
-  schedule:
-    # 00:00 every 14 days
-    - cron: 0 0 */14 * *
-
-permissions:
-  contents: read
-
+  push:
 jobs:
+  trivy-license-scan:
+    uses: AnchorFree/secops-workflows/.github/workflows/reusable-license-check.yml@main
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      security-events: write
+  trivy-config-scan:
+    uses: AnchorFree/secops-workflows/.github/workflows/reusable-trivy-config.yml@main
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      security-events: write
   trivy-repo-scan:
+    uses: AnchorFree/secops-workflows/.github/workflows/reusable-trivy-repo.yml@main
     permissions:
       contents: read
-      security-events: write
       actions: read
-    name: Trivy repo scan
-    runs-on: ubuntu-latest
-    env:
-      TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
-      TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db:1
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          lfs: true
-          submodules: recursive
-
-      - name: Checkout LFS objects
-        run: git lfs checkout
-
-      - name: Run Trivy vulnerability scanner in repo mode (table)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          scan-type: 'fs'
-          ignore-unfixed: true
-          format: 'table'
-
-      - name: Run Trivy vulnerability scanner in repo mode (sarif)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          scan-type: 'fs'
-          ignore-unfixed: true
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
-        with:
-          sarif_file: 'trivy-results.sarif'
-
-  trivy-image-scan:
-    permissions:
-      contents: read
+      id-token: write
       security-events: write
-      actions: read
-    name: Trivy image scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          lfs: true
-          submodules: recursive
-
-      - name: Checkout LFS objects
-        run: git lfs checkout
-
-      - name: Build an image from Dockerfile
-        run: |
-          docker build -t ${{ github.sha }} .
-
-      - name: Run Trivy vulnerability scanner in image mode (table output)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          image-ref: '${{ github.sha }}'
-          ignore-unfixed: true
-          format: 'table'
-
-      - name: Run Trivy vulnerability scanner in image mode (sarif output)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          image-ref: '${{ github.sha }}'
-          ignore-unfixed: true
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
-        with:
-          sarif_file: 'trivy-results.sarif'

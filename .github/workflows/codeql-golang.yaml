@@ -1,4 +1,3 @@
-# Workflow managed by https://github.com/AnchorFree/workflows/
 name: "CodeQL Golang"
 
 on:
@@ -6,6 +5,10 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  # On a pull request the action restricts every alerting query to the lines in the diff, so a
+  # change that touches no Go file reports nothing. Dispatch scans the whole tree instead, which
+  # is what you want to check the scan itself rather than a change.
+  workflow_dispatch:
 
 jobs:
   analyze:
@@ -18,16 +21,26 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    # go.mod requires a Go version newer than the one preinstalled on some runner images.
+    # Without this, autobuild falls back to a toolchain download and the analysis depends on
+    # whatever the image happens to ship.
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: go.mod
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@0daab03d71ff584ef619d027a3fd9146679c5d84 # v3.35.3
+      uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
       with:
         languages: 'go'
+        # The default suite runs @precision high queries only, which skips
+        # go/log-injection and the rest of the medium-precision set.
+        queries: security-extended
 
     - name: Autobuild
-      uses: github/codeql-action/autobuild@0daab03d71ff584ef619d027a3fd9146679c5d84 # v3.35.3
+      uses: github/codeql-action/autobuild@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@0daab03d71ff584ef619d027a3fd9146679c5d84 # v3.35.3
-
+      uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
