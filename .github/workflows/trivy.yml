@@ -3,25 +3,120 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
   push:
+    branches: [ master ]
+  schedule:
+    # 00:00 every 14 days, so new CVEs against unchanged code still surface.
+    - cron: 0 0 */14 * *
+
+permissions: {}
+
+# The config and repo jobs are inlined from AnchorFree/secops-workflows reusable-trivy-config.yml
+# and reusable-trivy-repo.yml. ssl-watch is public and secops-workflows is internal, and a public
+# repository cannot call an internal reusable workflow. The license check is not inlined: it reads
+# its policy from secops-workflows and files Jira tickets with a Vault-issued token.
+#
+# Keep the job IDs. Code scanning keys alerts on workflow path and job ID, so renaming a job
+# orphans its open alerts instead of letting the next scan close them.
+env:
+  TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2
+  TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1
+
 jobs:
-  trivy-license-scan:
-    uses: AnchorFree/secops-workflows/.github/workflows/reusable-license-check.yml@main
-    permissions:
-      contents: read
-      actions: read
-      id-token: write
-      security-events: write
   trivy-config-scan:
-    uses: AnchorFree/secops-workflows/.github/workflows/reusable-trivy-config.yml@main
+    name: Trivy misconfiguration scan
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       actions: read
-      id-token: write
       security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # trivy.yaml in the repository root points Trivy at .trivyignore.yaml.
+      - name: Run Trivy misconfiguration scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: 'config'
+          format: 'sarif'
+          hide-progress: true
+          output: 'trivy-config-results.sarif'
+
+      - name: Upload Trivy misconfiguration scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: 'trivy-config-results.sarif'
+
   trivy-repo-scan:
-    uses: AnchorFree/secops-workflows/.github/workflows/reusable-trivy-repo.yml@main
+    name: Trivy repo scan
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       actions: read
-      id-token: write
       security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run Trivy vulnerability scanner in repo mode (table)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          hide-progress: true
+
+      - name: Run Trivy vulnerability scanner in repo mode (sarif)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'sarif'
+          hide-progress: true
+          output: 'trivy-repo-results.sarif'
+          skip-setup-trivy: true
+
+      - name: Upload Trivy repo scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: 'trivy-repo-results.sarif'
+
+  # Not in secops-workflows. The repo scan reads go.mod only, so it misses the Go stdlib
+  # compiled into the binary and the packages in the base image. This job is what reports those.
+  trivy-image-scan:
+    name: Trivy image scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build an image from Dockerfile
+        run: |
+          docker build -t "ssl-watch:${GITHUB_SHA}" .
+
+      - name: Run Trivy vulnerability scanner in image mode (table)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: 'ssl-watch:${{ github.sha }}'
+          ignore-unfixed: true
+          format: 'table'
+          hide-progress: true
+
+      - name: Run Trivy vulnerability scanner in image mode (sarif)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: 'ssl-watch:${{ github.sha }}'
+          ignore-unfixed: true
+          format: 'sarif'
+          hide-progress: true
+          output: 'trivy-image-results.sarif'
+          skip-setup-trivy: true
+
+      - name: Upload Trivy image scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: 'trivy-image-results.sarif'
