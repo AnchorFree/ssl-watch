@@ -1,0 +1,10 @@
+# Trivy ignore rules (YAML format, experimental — must be passed via --ignorefile; not
+# auto-detected). The trivy.yaml in the repository root points Trivy at this file.
+misconfigurations:
+  # DS-0026: no HEALTHCHECK defined.
+  # ssl-watch runs on Kubernetes, which ignores a Dockerfile HEALTHCHECK and uses the pod's
+  # probes instead. Same decision as gpr-edge (DEVOPS-14902) and ula-edge (DEVOPS-14903).
+  - id: DS-0026
+    paths:
+      - "Dockerfile"
+    statement: Kubernetes ignores HEALTHCHECK; liveness belongs to the pod spec.

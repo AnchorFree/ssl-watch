@@ -1,0 +1,5 @@
+# Trivy auto-loads this file from the repository root. It exists only to
+# point Trivy at the YAML ignore file: --ignorefile defaults to the legacy
+# plain-text ".trivyignore", so ".trivyignore.yaml" is not picked up on its
+# own, and the secops reusable workflow does not pass --ignorefile.
+ignorefile: .trivyignore.yaml
