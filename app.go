@@ -187,14 +187,21 @@ func (app *App) updateMetrics() {
 	defer ticker.Stop()
 
 	for ; true; <-ticker.C {
-		domains := app.services.ListDomains()
-		app.log.Debug("current domains", zap.Strings("domains", domains))
-		for _, domain := range domains {
-			app.log.Debug("processing domain " + domain)
-			ips := app.services.GetIPs(domain)
-			eps := app.ProcessDomain(domain, StrToIp(ips))
-			app.metrics.Set(domain, eps)
-		}
+		app.scrape()
+	}
+
+}
+
+// scrape probes every configured domain once and stores the results.
+func (app *App) scrape() {
+
+	domains := app.services.ListDomains()
+	app.log.Debug("current domains", zap.Strings("domains", domains))
+	for _, domain := range domains {
+		app.log.Debug("processing domain " + domain)
+		ips := app.services.GetIPs(domain)
+		eps := app.ProcessDomain(domain, StrToIp(ips))
+		app.metrics.Set(domain, eps)
 	}
 
 }
