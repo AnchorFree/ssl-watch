@@ -165,3 +165,48 @@ func TestReloadConfigFromFiles(t *testing.T) {
 		t.Error("ReloadConfig read c.json, which lacks the .conf suffix")
 	}
 }
+
+func TestScrape(t *testing.T) {
+	port, _ := newTLSServer(t, 0)
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, deadPort, _ := net.SplitHostPort(l.Addr().String())
+	_ = l.Close()
+
+	app := newTestApp()
+	app.services.Update([]byte(`{"https": {
+		"ips": {"local": ["127.0.0.1"]},
+		"domains": {"example.com:` + port + `": ["local"], "dead.example.com:` + deadPort + `": ["127.0.0.1"]}
+	}}`))
+	app.scrape()
+
+	if got := len(app.metrics.ListDomains()); got != 2 {
+		t.Fatalf("after one scrape, metrics hold %d domains, want 2", got)
+	}
+	if eps, _ := app.metrics.Get("example.com:" + port); !eps["127.0.0.1"].alive || !eps["127.0.0.1"].valid {
+		t.Errorf("example.com endpoints = %+v, want 127.0.0.1 alive and valid", eps)
+	}
+	if eps, _ := app.metrics.Get("dead.example.com:" + deadPort); eps["127.0.0.1"].alive {
+		t.Errorf("dead.example.com endpoints = %+v, want 127.0.0.1 dead", eps)
+	}
+}
+
+func TestResolveDomain(t *testing.T) {
+	app := newTestApp()
+	app.config.LookupTimeout = 500 * time.Millisecond
+
+	found := false
+	for _, ip := range app.ResolveDomain("localhost") {
+		found = found || ip.IsLoopback()
+	}
+	if !found {
+		t.Error("ResolveDomain(localhost) returned no loopback address")
+	}
+
+	// The .invalid top-level domain never resolves, so the lookup fails or times out.
+	if ips := app.ResolveDomain("ssl-watch.invalid"); len(ips) != 0 {
+		t.Errorf("ResolveDomain(ssl-watch.invalid) = %v, want none", ips)
+	}
+}
