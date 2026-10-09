@@ -2,6 +2,8 @@ module github.com/anchorfree/ssl-watch
 
 go 1.26
 
+toolchain go1.26.9
+
 require (
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/gorilla/mux v1.8.1
